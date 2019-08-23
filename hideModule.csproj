@@ -1,17 +1,13 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+﻿<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{7F65D057-A505-4A0C-B309-6A34F3B08557}</ProjectGuid>
+    <ProjectGuid>{5037544C-2DD7-442D-AD67-16F992088452}</ProjectGuid>
     <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>hideModule</RootNamespace>
-    <AssemblyName>hideModule</AssemblyName>
-    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <NoStandardLibraries>false</NoStandardLibraries>
+    <AssemblyName>ClassLibrary</AssemblyName>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
-    <Deterministic>true</Deterministic>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -30,19 +26,23 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
+  <PropertyGroup>
+    <RootNamespace>hideModule</RootNamespace>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="Assembly-CSharp">
       <HintPath>D:\Steam Library\steamapps\common\VRChat\VRChat_Data\Managed\Assembly-CSharp.dll</HintPath>
     </Reference>
     <Reference Include="emmVRClient">
-      <HintPath>..\..\emmVRC\emmVRC\bin\Release\emmVRClient.dll</HintPath>
+      <HintPath>..\..\..\source\repos\emmVRC\emmVRC\bin\Release\emmVRClient.dll</HintPath>
     </Reference>
+    <Reference Include="Microsoft.CSharp" />
     <Reference Include="System" />
     <Reference Include="System.Core" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="System.Data" />
+    <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="System.Xml" />
+    <Reference Include="System.Xml.Linq" />
     <Reference Include="UnityEngine">
       <HintPath>D:\Steam Library\steamapps\common\VRChat\VRChat_Data\Managed\UnityEngine.dll</HintPath>
     </Reference>
@@ -58,16 +58,60 @@
     <Reference Include="VRCModLoader">
       <HintPath>D:\Steam Library\steamapps\common\VRChat\VRChat_Data\Managed\VRCModLoader.dll</HintPath>
     </Reference>
-    <Reference Include="VRCSDK2">
-      <HintPath>D:\Steam Library\steamapps\common\VRChat\VRChat_Data\Managed\VRCSDK2.dll</HintPath>
-    </Reference>
     <Reference Include="VRCTools.0.7.0">
       <HintPath>D:\Steam Library\steamapps\common\VRChat\Mods\VRCTools.0.7.0.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Content Include=".gitattributes" />
+  </ItemGroup>
+  <ItemGroup>
     <Compile Include="hideModule.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <ItemGroup>
+    <None Include=".git\COMMIT_EDITMSG" />
+    <None Include=".git\config" />
+    <None Include=".git\description" />
+    <None Include=".git\FETCH_HEAD" />
+    <None Include=".git\HEAD" />
+    <None Include=".git\hooks\applypatch-msg.sample" />
+    <None Include=".git\hooks\commit-msg.sample" />
+    <None Include=".git\hooks\fsmonitor-watchman.sample" />
+    <None Include=".git\hooks\post-update.sample" />
+    <None Include=".git\hooks\pre-applypatch.sample" />
+    <None Include=".git\hooks\pre-commit.sample" />
+    <None Include=".git\hooks\pre-push.sample" />
+    <None Include=".git\hooks\pre-rebase.sample" />
+    <None Include=".git\hooks\pre-receive.sample" />
+    <None Include=".git\hooks\prepare-commit-msg.sample" />
+    <None Include=".git\hooks\update.sample" />
+    <None Include=".git\index" />
+    <None Include=".git\info\exclude" />
+    <None Include=".git\logs\HEAD" />
+    <None Include=".git\logs\refs\heads\master" />
+    <None Include=".git\logs\refs\remotes\origin\master" />
+    <None Include=".git\objects\0a\c56d214488af2c38fbaa9af008b1353a9c0591" />
+    <None Include=".git\objects\11\8d407b5f0604d1947e668975a0963feb667632" />
+    <None Include=".git\objects\17\c0ca12af8d8f3ade99dd4fc67ad3a3c3bd0d33" />
+    <None Include=".git\objects\59\0fe6c59280d47f95b8bf9a0b43067ac5ffaf1c" />
+    <None Include=".git\objects\60\3a9c8d00b786a8d46ce5ce40a6ba87db2c5c23" />
+    <None Include=".git\objects\66\6619db5cc27d2fbc7cc5b30c31b092aa9d8bf9" />
+    <None Include=".git\objects\8f\4259fa0f810ca27dcc38cb8aa5689acd587454" />
+    <None Include=".git\objects\ca\0b72ae8198332f8b9eefba8fc2ab4a1f04d74c" />
+    <None Include=".git\objects\df\e0770424b2a19faf507a501ebfc23be8f54e7b" />
+    <None Include=".git\objects\f6\225dda670c9ff0c5575a32944e263449b0ca98" />
+    <None Include=".git\refs\heads\master" />
+    <None Include=".git\refs\remotes\origin\master" />
+    <None Include="README.md" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include=".git\objects\info\" />
+    <Folder Include=".git\objects\pack\" />
+    <Folder Include=".git\refs\tags\" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSHARP.Targets" />
+  <ProjectExtensions>
+    <VisualStudio AllowExistingFolder="true" />
+  </ProjectExtensions>
 </Project>

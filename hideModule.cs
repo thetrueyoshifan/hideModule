@@ -22,7 +22,6 @@ namespace hideModule
         bool avatarFav = false;
         bool emmVRC = false;
 
-        Button.ButtonClickedEvent vrcmlSettingsButtonAction = null;
         void OnApplicationStart()
         {
             // Check if the game started with "--hidemods", and if so, block mods to start with
@@ -38,8 +37,6 @@ namespace hideModule
         void OnLevelWasInitialized(int level)
         {
             if (level != 1) return;
-            // Grab the current button action for the VRCML Settings button, so we can set it back whenever we need
-            vrcmlSettingsButtonAction = QuickMenuUtils.GetQuickMenuInstance().transform.Find("ShortcutMenu/SettingsButton").GetComponentInChildren<Button>().onClick;
             // If mods are already supposed to be hidden at this point, make it so
             if (hidingMods)
                 hideMods();

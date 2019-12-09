@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,7 +11,7 @@ using System.Reflection;
 
 namespace hideModule
 {
-    [VRCModInfo("hideModule", "1.0.0", "Emilia")]
+    [VRCModInfo("hideModule", "1.0.1", "Emilia")]
     class main : VRCMod
     {
         bool hidingMods = false;
@@ -19,9 +19,16 @@ namespace hideModule
         private static FieldInfo currentPageGetter;
         private static FieldInfo quickmenuContextualDisplayGetter;
 
+        private static float moddedInfoBarSize = 0;
+        private static float moddedInfoBarOffset = 0;
+
+        Type emmVRCAPI;
+
+
         bool avatarFav = false;
         bool emmVRC = false;
 
+        Button.ButtonClickedEvent vrcmlSettingsButtonAction = null;
         void OnApplicationStart()
         {
             // Check if the game started with "--hidemods", and if so, block mods to start with
@@ -31,12 +38,19 @@ namespace hideModule
             // Mod detection to add compatibility, while also avoiding breaking things if these mods are not present
             if (ModManager.Mods.Find(x => x.Name == "AvatarFav") != null)
                 avatarFav = true;
-            if (ModManager.Mods.Find(x => x.Name == "emmVRC") != null)
-                emmVRC = true;
+            // Using reflection to access emmVRC
+            emmVRCAPI = null;
+            emmVRC = AppDomain.CurrentDomain.GetAssemblies().Any(a =>
+            {
+                emmVRCAPI = a.GetType("emmVRC.emmVRC");
+                return emmVRCAPI != null;
+            });
         }
         void OnLevelWasInitialized(int level)
         {
             if (level != 1) return;
+            // Grab the current button action for the VRCML Settings button, so we can set it back whenever we need
+            vrcmlSettingsButtonAction = QMStuff.GetQuickMenuInstance().transform.Find("ShortcutMenu/SettingsButton").GetComponentInChildren<Button>().onClick;
             // If mods are already supposed to be hidden at this point, make it so
             if (hidingMods)
                 hideMods();
@@ -62,37 +76,29 @@ namespace hideModule
             try
             {
                 // Disables the VRCModNetwork Status text in the Quick Menu
-                QuickMenuUtils.GetQuickMenuInstance().transform.Find("ShortcutMenu/VRCModNetworkStatusText").gameObject.SetActive(false);
+                QMStuff.GetQuickMenuInstance().transform.Find("ShortcutMenu/VRCModNetworkStatusText").gameObject.SetActive(false);
 
                 // Clears the current listeners for the Settings button, in order to add one mimmicking the vanilla VRChat Settings button
-                QuickMenuUtils.GetQuickMenuInstance().transform.Find("ShortcutMenu/SettingsButton").GetComponentInChildren<Button>().onClick = new Button.ButtonClickedEvent();
+                QMStuff.GetQuickMenuInstance().transform.Find("ShortcutMenu/SettingsButton").GetComponentInChildren<Button>().onClick = new Button.ButtonClickedEvent();
                 // Actually add the mimmicking action
-                QuickMenuUtils.GetQuickMenuInstance().transform.Find("ShortcutMenu/SettingsButton").GetComponentInChildren<Button>().onClick.AddListener(delegate ()
+                QMStuff.GetQuickMenuInstance().transform.Find("ShortcutMenu/SettingsButton").GetComponentInChildren<Button>().onClick.AddListener(delegate ()
                 {
-                    QuickMenuUtils.GetQuickMenuInstance().MainMenu(3);
+                    QMStuff.GetQuickMenuInstance().MainMenu(3);
                 });
                 // Update the button's text and tooltip
-                QuickMenuUtils.GetQuickMenuInstance().transform.Find("ShortcutMenu/SettingsButton").GetComponentInChildren<Text>().text = "Settings";
-                QuickMenuUtils.GetQuickMenuInstance().transform.Find("ShortcutMenu/SettingsButton").GetComponent<UiTooltip>().text = "Tune Control, Audio and Video Settings. Log Out or Quit.";
+                QMStuff.GetQuickMenuInstance().transform.Find("ShortcutMenu/SettingsButton").GetComponentInChildren<Text>().text = "Settings";
+                QMStuff.GetQuickMenuInstance().transform.Find("ShortcutMenu/SettingsButton").GetComponent<UiTooltip>().text = "Tune Control, Audio and Video Settings. Log Out or Quit.";
 
                 // Attempts to adjust the info bar background to the vanilla position. This function changes, depending on if emmVRC is installed, so a switch case is used here.
-                Transform infobarpanelTransform = QuickMenuUtils.GetQuickMenuInstance().transform.Find("QuickMenu_NewElements/_InfoBar/Panel");
+                Transform infobarpanelTransform = QMStuff.GetQuickMenuInstance().transform.Find("QuickMenu_NewElements/_InfoBar/Panel");
                 RectTransform infobarpanelRectTransform = infobarpanelTransform.GetComponent<RectTransform>();
-                switch (emmVRC)
+                if (infobarpanelRectTransform.sizeDelta.y != 0 || infobarpanelRectTransform.anchoredPosition.y != 0)
                 {
-                    case true:
-                        {
-                            infobarpanelRectTransform.sizeDelta = new Vector2(infobarpanelRectTransform.sizeDelta.x, infobarpanelRectTransform.sizeDelta.y - (VRCTools.ModPrefs.GetBool("emmVRClient", "enableInfoBar") ? 160 : 80));
-                            infobarpanelRectTransform.anchoredPosition = new Vector2(infobarpanelRectTransform.anchoredPosition.x, infobarpanelRectTransform.anchoredPosition.y + (VRCTools.ModPrefs.GetBool("emmVRClient", "enableInfoBar") ? 80 : 40));
-                            break;
-                        }
-                    case false:
-                        {
-                            infobarpanelRectTransform.sizeDelta = new Vector2(infobarpanelRectTransform.sizeDelta.x, infobarpanelRectTransform.sizeDelta.y - 80);
-                            infobarpanelRectTransform.anchoredPosition = new Vector2(infobarpanelRectTransform.anchoredPosition.x, infobarpanelRectTransform.anchoredPosition.y + 40);
-                            break;
-                        }
-                };
+                    moddedInfoBarSize = infobarpanelRectTransform.sizeDelta.y;
+                    moddedInfoBarOffset = infobarpanelRectTransform.anchoredPosition.y;
+                    infobarpanelRectTransform.sizeDelta = new Vector2(infobarpanelRectTransform.sizeDelta.x, 0);
+                    infobarpanelRectTransform.anchoredPosition = new Vector2(infobarpanelRectTransform.anchoredPosition.x, 0);
+                }
             }
             catch (Exception ex)
             {
@@ -100,90 +106,111 @@ namespace hideModule
             }
 
             // Now for the support modules. At the moment, only emmVRC is supported by this. It has a function built in to do everything automatically, so we just need to call it.
-            // TODO: Fix emmVRC support!
-            //if (emmVRC)
-            //    emmVRClient.emmVRClient.HideMods();
+            if (emmVRC)
+            {
+                emmVRCAPI.GetMethod("hideEmmVRC").Invoke(null, null);
+            }
+            if (avatarFav)
+            {
+
+                VRCUiManagerUtils.OnPageShown += (page) =>
+                {
+                    if (page.GetType() == typeof(VRC.UI.PageAvatar) && hidingMods)
+                    {
+                        ModManager.StartCoroutine(hideAvatarFav());
+                    }
+                };
+            }
+
+        }
+        static IEnumerator hideAvatarFav()
+        {
+            yield return new WaitForSeconds(0.25f);
+            UiInputField searchBar = VRCUiManagerUtils.GetVRCUiManager().GetComponentInChildren<VRCUiPageHeader>(true).searchBar;
+            if (searchBar != null)
+            {
+                searchBar.editButton.interactable = false;
+            }
+            GameObject.Find("UserInterface/MenuContent/Screens/Avatar/Vertical Scroll View/Viewport/Content/Favorite Avatar List(Clone)").SetActive(false);
+            GameObject.Find("UserInterface/MenuContent/Screens/Avatar/ToggleFavorite").transform.localScale = new Vector3(0, 0, 0);
         }
         void showMods()
         {
             try
             {
                 // Enables the VRCModNetwork Status text in the Quick Menu
-                QuickMenuUtils.GetQuickMenuInstance().transform.Find("ShortcutMenu/VRCModNetworkStatusText").gameObject.SetActive(true);
+                QMStuff.GetQuickMenuInstance().transform.Find("ShortcutMenu/VRCModNetworkStatusText").gameObject.SetActive(true);
 
                 // Resets the listener for the Settings button back to VRCML's action
-                QuickMenuUtils.GetQuickMenuInstance().transform.Find("ShortcutMenu/SettingsButton").GetComponentInChildren<Button>().onClick = new Button.ButtonClickedEvent();
-                QuickMenuUtils.GetQuickMenuInstance().transform.Find("ShortcutMenu/SettingsButton").GetComponentInChildren<Button>().onClick.AddListener(delegate () { ShowQuickmenuPage("SettingsMenu"); });
+                QMStuff.GetQuickMenuInstance().transform.Find("ShortcutMenu/SettingsButton").GetComponentInChildren<Button>().onClick = new Button.ButtonClickedEvent();
+                QMStuff.GetQuickMenuInstance().transform.Find("ShortcutMenu/SettingsButton").GetComponentInChildren<Button>().onClick.AddListener(delegate () { ShowQuickmenuPage("SettingsMenu"); });
 
                 // Update the button's text and tooltip
-                QuickMenuUtils.GetQuickMenuInstance().transform.Find("ShortcutMenu/SettingsButton").GetComponentInChildren<Text>().text = "Mod/Game\nSettings";
-                QuickMenuUtils.GetQuickMenuInstance().transform.Find("ShortcutMenu/SettingsButton").GetComponent<UiTooltip>().text = "Tune Control, Audio, Video and Mod Settings. Log Out or Quit.";
+                QMStuff.GetQuickMenuInstance().transform.Find("ShortcutMenu/SettingsButton").GetComponentInChildren<Text>().text = "Mod/Game\nSettings";
+                QMStuff.GetQuickMenuInstance().transform.Find("ShortcutMenu/SettingsButton").GetComponent<UiTooltip>().text = "Tune Control, Audio, Video and Mod Settings. Log Out or Quit.";
 
                 // Attempts to adjust the info bar background to the modded position. This function changes, depending on if emmVRC is installed, so a switch case is used here.
-                Transform infobarpanelTransform = QuickMenuUtils.GetQuickMenuInstance().transform.Find("QuickMenu_NewElements/_InfoBar/Panel");
+                Transform infobarpanelTransform = QMStuff.GetQuickMenuInstance().transform.Find("QuickMenu_NewElements/_InfoBar/Panel");
                 RectTransform infobarpanelRectTransform = infobarpanelTransform.GetComponent<RectTransform>();
-                switch (emmVRC)
+                if (moddedInfoBarSize != 0 || moddedInfoBarOffset != 0)
                 {
-                    case true:
-                        {
-                            infobarpanelRectTransform.sizeDelta = new Vector2(infobarpanelRectTransform.sizeDelta.x, infobarpanelRectTransform.sizeDelta.y + (VRCTools.ModPrefs.GetBool("emmVRClient", "enableInfoBar") ? 160 : 80));
-                            infobarpanelRectTransform.anchoredPosition = new Vector2(infobarpanelRectTransform.anchoredPosition.x, infobarpanelRectTransform.anchoredPosition.y - (VRCTools.ModPrefs.GetBool("emmVRClient", "enableInfoBar") ? 80 : 40));
-                            break;
-                        }
-                    case false:
-                        {
-                            infobarpanelRectTransform.sizeDelta = new Vector2(infobarpanelRectTransform.sizeDelta.x, infobarpanelRectTransform.sizeDelta.y + 80);
-                            infobarpanelRectTransform.anchoredPosition = new Vector2(infobarpanelRectTransform.anchoredPosition.x, infobarpanelRectTransform.anchoredPosition.y - 40);
-                            break;
-                        }
-                };
-
-                // Now for the support modules. At the moment, only emmVRC is supported by this. It has a function built in to do everything automatically, so we just need to call it.
-                // TODO: Fix emmVRC support!
-                //if (emmVRC)
-                //    emmVRClient.emmVRClient.ShowMods();
+                    infobarpanelRectTransform.sizeDelta = new Vector2(infobarpanelRectTransform.sizeDelta.x, moddedInfoBarSize);
+                    infobarpanelRectTransform.anchoredPosition = new Vector2(infobarpanelRectTransform.anchoredPosition.x, moddedInfoBarOffset);
+                    moddedInfoBarSize = 0;
+                    moddedInfoBarOffset = 0;
+                }
             }
             catch (Exception ex)
             {
                 VRCModLogger.Log("[hideModule] An error occured while showing mods: " + ex.ToString());
+            }
+            // Now for the support modules. At the moment, only emmVRC is supported by this. It has a function built in to do everything automatically, so we just need to call it.
+            // TODO: Fix emmVRC support!
+            if (emmVRC)
+            {
+                emmVRCAPI.GetMethod("showEmmVRC").Invoke(null, null);
+            }
+            if (avatarFav)
+            {
+                GameObject.Find("UserInterface/MenuContent/Screens/Avatar/ToggleFavorite").transform.localScale = new Vector3(1, 1, 1);
             }
         }
 
         // VRCTools ShowQuickMenuPage function
         internal static void ShowQuickmenuPage(string pagename)
         {
-            QuickMenu quickmenu = QuickMenuUtils.GetQuickMenuInstance();
+            QuickMenu quickmenu = QMStuff.GetQuickMenuInstance();
             Transform pageTransform = quickmenu?.transform.Find(pagename);
             if (pageTransform == null)
             {
-                VRCModLogger.LogError("[QuickMenuUtils] pageTransform is null !");
+                VRCModLogger.LogError("[QMStuff] pageTransform is null !");
             }
 
             if (currentPageGetter == null)
             {
                 GameObject shortcutMenu = quickmenu.transform.Find("ShortcutMenu").gameObject;
                 FieldInfo[] fis = typeof(QuickMenu).GetFields(BindingFlags.NonPublic | BindingFlags.Instance).Where((fi) => fi.FieldType == typeof(GameObject)).ToArray();
-                VRCModLogger.Log("[QuickMenuUtils] GameObject Fields in QuickMenu:");
+                VRCModLogger.Log("[QMStuff] GameObject Fields in QuickMenu:");
                 int count = 0;
                 foreach (FieldInfo fi in fis)
                 {
                     GameObject value = fi.GetValue(quickmenu) as GameObject;
                     if (value == shortcutMenu && ++count == 2)
                     {
-                        VRCModLogger.Log("[QuickMenuUtils] currentPage field: " + fi.Name);
+                        VRCModLogger.Log("[QMStuff] currentPage field: " + fi.Name);
                         currentPageGetter = fi;
                         break;
                     }
                 }
                 if (currentPageGetter == null)
                 {
-                    VRCModLogger.LogError("[QuickMenuUtils] Unable to find field currentPage in QuickMenu");
+                    VRCModLogger.LogError("[QMStuff] Unable to find field currentPage in QuickMenu");
                     return;
                 }
             }
 
                     ((GameObject)currentPageGetter.GetValue(quickmenu))?.SetActive(false);
-            QuickMenuUtils.GetQuickMenuInstance().transform.Find("QuickMenu_NewElements/_InfoBar").gameObject.SetActive(false);
+            QMStuff.GetQuickMenuInstance().transform.Find("QuickMenu_NewElements/_InfoBar").gameObject.SetActive(false);
 
             if (quickmenuContextualDisplayGetter != null)
                 quickmenuContextualDisplayGetter = typeof(QuickMenu).GetFields(BindingFlags.NonPublic | BindingFlags.Instance).FirstOrDefault((fi) => fi.FieldType == typeof(QuickMenuContextualDisplay));
